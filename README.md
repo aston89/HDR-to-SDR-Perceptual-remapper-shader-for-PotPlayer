@@ -170,6 +170,7 @@ Before using this shader :
 
 ### 7  Usage in other players like MPC and forks
 If you want to use this shader in other players like MPC, kmplayer, mpc mods or forks like mpc-hc, check in their pixel shader folders wich extensions are they using, for mpc you have to swap the .txt extension in .hlsl and it should work.
+To use this shader in potplayer, go into his program folder and put the .txt file inside the px-shader folder (C:\Program Files\PotPlayer\PxShader)
 
 ---
 
