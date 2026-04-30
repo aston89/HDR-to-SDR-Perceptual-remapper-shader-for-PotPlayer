@@ -1,0 +1,96 @@
+sampler s0 : register(s0);
+float4 p0 : register(c0);
+float4 p1 : register(c1);
+
+#define width           (p0[0])
+#define height          (p0[1])
+#define counter         (p0[2])
+#define clock           (p0[3])
+#define one_over_width  (p1[0])
+#define one_over_height (p1[1])
+
+#define BASE_EXPOSURE    0.98
+#define BASE_CONTRAST    1.03
+#define BASE_SATURATION  1.06
+#define SHADOW_LIFT      0.000
+#define HIGHLIGHT_DESAT  0.24
+#define DITHER_STRENGTH  (1.0 / 512.0)
+
+float Luma(float3 c)
+{
+    return dot(c, float3(0.2126, 0.7152, 0.0722));
+}
+
+float3 ToLinear(float3 c)
+{
+    c = saturate(c);
+    return pow(c, 2.2);
+}
+
+float3 ToDisplay(float3 c)
+{
+    c = saturate(c);
+    return pow(c, 1.0 / 2.2);
+}
+
+float Hash12(float2 p)
+{
+    return frac(sin(dot(p, float2(12.9898, 78.233)) + counter * 0.123 + clock * 0.001) * 43758.5453);
+}
+
+float3 FilmicCurve(float3 x)
+{
+    x = max(x, 0.0);
+
+    float3 aces = (x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14);
+    float3 soft = x / (x + 1.0);
+
+    return lerp(aces, soft, 0.18);
+}
+
+float4 main(float2 tex : TEXCOORD0) : COLOR
+{
+    float3 c0 = tex2D(s0, tex).rgb;
+
+    float3 cL = tex2D(s0, tex + float2(-one_over_width, 0.0)).rgb;
+    float3 cR = tex2D(s0, tex + float2( one_over_width, 0.0)).rgb;
+    float3 cU = tex2D(s0, tex + float2(0.0, -one_over_height)).rgb;
+    float3 cD = tex2D(s0, tex + float2(0.0,  one_over_height)).rgb;
+
+    c0 = ToLinear(c0);
+    cL = ToLinear(cL);
+    cR = ToLinear(cR);
+    cU = ToLinear(cU);
+    cD = ToLinear(cD);
+
+    float Y0 = Luma(c0);
+    float YL = Luma(cL);
+    float YR = Luma(cR);
+    float YU = Luma(cU);
+    float YD = Luma(cD);
+
+    float localY = (Y0 * 0.42 + (YL + YR + YU + YD) * 0.145);
+
+    float exposure = BASE_EXPOSURE * lerp(1.10, 0.92, smoothstep(0.08, 0.80, localY));
+
+    float3 x = c0 * exposure;
+
+    x += SHADOW_LIFT * (1.0 - smoothstep(0.0, 0.30, localY));
+
+    x = FilmicCurve(x);
+
+    float Y1 = Luma(x);
+    x = (x - Y1.xxx) * BASE_CONTRAST + Y1.xxx;
+
+    float sat = BASE_SATURATION * lerp(1.0, 0.88, smoothstep(0.58, 0.96, Y1));
+    x = lerp(Y1.xxx, x, sat);
+
+    x = lerp(x, Y1.xxx, smoothstep(0.72, 0.98, Y1) * HIGHLIGHT_DESAT);
+
+    float d = (Hash12(tex * float2(width, height)) - 0.5) * DITHER_STRENGTH;
+    x += d;
+
+    x = ToDisplay(saturate(x));
+
+    return float4(x, 1.0);
+}
