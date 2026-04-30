@@ -92,7 +92,7 @@ Final values are converted back to display gamma (~2.2):
 
 ---
 
-## 🧠 Design Philosophy
+## Design Philosophy
 This shader is **perceptual, not technical**.
 
 It does NOT attempt to:
@@ -109,7 +109,7 @@ This makes it:
 
 ---
 
-## Important Notes !
+## Important technical notes !
 
 ### 1 Full Range Pipeline
 This shader assumes:
@@ -167,6 +167,9 @@ This shader aims to solve this problem without the need for constant manual adju
 
 Before using this shader : 
 > open settings in potplayer and go into video, then inside pixel-shader tab deselect the two checkboxes correlated to STMPE functions to avoid multiple useless and destructive remapping.
+
+### 7  Usage in other players like MPC and forks
+If you want to use this shader in other players like MPC, kmplayer, mpc mods or forks like mpc-hc, check in their pixel shader folders wich extensions are they using, for mpc you have to swap the .txt extension in .hlsl and it should work.
 
 ---
 
